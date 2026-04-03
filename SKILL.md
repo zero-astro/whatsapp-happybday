@@ -1,11 +1,24 @@
 ---
 name: whatsapp-happybday
 description: Monitor WhatsApp groups to dynamically detect people who should be congratulated. It identifies keywords (e.g., "birthday", "congratulations") and the person's name using a score-based system, then automatically sends a random customizable congratulatory message.
+version: 1.0.0
 triggers:
   - "whatsapp happybday"
   - "monitor whatsapp group"
   - "send congratulations"
   - "whatsapp congratulate"
+metadata:
+  openclaw:
+    requires:
+      bins:
+        - python3
+      env:
+        - BIRTHDAY_SKIP_LIST
+        - BIRTHDAY_MIN_MESSAGES
+        - BIRTHDAY_CONFIDENCE_THRESHOLD
+        - BIRTHDAY_SIMULATE
+    primaryEnv: BIRTHDAY_SKIP_LIST
+    homepage: https://github.com/zero-astro/whatsapp-happybday
 ---
 
 # WhatsApp HappyBDay Skill
