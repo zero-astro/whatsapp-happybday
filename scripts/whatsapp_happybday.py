@@ -10,7 +10,38 @@ import random
 import os
 import json
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
+import sys
+import os
+
+# Try to import dotenv from various locations
+dotenv_found = False
+try:
+    from dotenv import load_dotenv
+    dotenv_found = True
+except ImportError:
+    # Try user site-packages paths
+    user_site = '/Users/kamaraka/Library/Python/3.9/lib/python/site-packages'
+    
+    if os.path.exists(user_site):
+        sys.path.insert(0, user_site)
+        try:
+            from dotenv import load_dotenv
+            dotenv_found = True
+        except ImportError:
+            pass
+
+if not dotenv_found:
+    print("ERROR: python-dotenv not found")
+    sys.exit(1)
+
+# Ensure we're using the right Python path
+if sys.executable == '/opt/homebrew/bin/python3':
+    # Try to find the correct python-dotenv installation
+    import subprocess
+    result = subprocess.run(['which', 'python3'], capture_output=True, text=True)
+    if result.returncode == 0:
+        python_path = result.stdout.strip()
+        print(f"Using Python: {python_path}")
 
 # --- Main Configuration ---
 # These users will never receive automated congratulations
