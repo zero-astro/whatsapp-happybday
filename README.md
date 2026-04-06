@@ -1,6 +1,6 @@
 # WhatsApp HappyBDay Skill ✨
 
-**Version 1.0.1**
+**Version 1.0.2 - Security & Consistency Fixes**
 
 **Monitor WhatsApp groups to dynamically detect people who should be congratulated. It identifies keywords (e.g., "birthday", "congratulations") and the person's name using a score-based system, then automatically sends a random customizable congratulatory message.**
 
@@ -82,7 +82,7 @@ Add to your workspace's `HEARTBEAT.md`:
 openclaw cron add \
   --name "WhatsApp HappyBDay Monitor" \
   --cron "0 * * * *" \
-  --message "Run python3 ~/.openclaw/skills/whatsapp-happybday/scripts/whatsapp_happybday.py. Report any congratulations sent or errors encountered."
+  --message "Run python3 ~/.openclaw/skills/whatsapp-happybday/scripts/whatsapp_happybday.py. Report any congratulations sent or errors encountered. If no action taken, respond with HEARTBEAT_OK."
 ```
 
 ## 📝 How It Works

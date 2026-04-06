@@ -1,6 +1,6 @@
 ---
 name: whatsapp-happybday
-version: 1.0.1
+version: 1.0.2
 description: Monitor WhatsApp groups to dynamically detect people who should be congratulated. It identifies keywords (e.g., "birthday", "congratulations") and the person's name using a score-based system, then automatically sends a random customizable congratulatory message.
 triggers:
   - whatsapp happybday
@@ -13,11 +13,10 @@ metadata:
       bins:
         - python3
       env:
-        - BIRTHDAY_SKIP_LIST
         - BIRTHDAY_MIN_MESSAGES
         - BIRTHDAY_CONFIDENCE_THRESHOLD
         - BIRTHDAY_SIMULATE
-    primaryEnv: BIRTHDAY_SKIP_LIST
+    primaryEnv: BIRTHDAY_MIN_MESSAGES
     homepage: https://github.com/zero-astro/whatsapp-happybday
 ---
 
@@ -59,13 +58,13 @@ Create a `.env` file in the skill's root directory (`~/.openclaw/skills/whatsapp
 # Examples: "John|01-15,Jane,Alice|12-25"
 export BIRTHDAY_SKIP_LIST="Urtzi|03-16,Iraide,Xune,Eñaut|08-25"
 
-# Minimum messages mentioning the name before triggering
+# Minimum messages mentioning the name before triggering (default: 3)
 export BIRTHDAY_MIN_MESSAGES="3"
 
-# Minimum score threshold to trigger the congratulation
+# Minimum score threshold to trigger the congratulation (default: 120)
 export BIRTHDAY_CONFIDENCE_THRESHOLD="120"
 
-# Simulation mode (true = dry-run/logging only, false = actually send messages)
+# Simulation mode (true = dry-run/logging only, false = actually send messages) (default: true)
 export BIRTHDAY_SIMULATE="true"
 ```
 
@@ -119,7 +118,7 @@ Create a cron job to run the monitor script periodically (e.g., every hour betwe
 openclaw cron add \
   --name "WhatsApp HappyBDay Monitor" \
   --cron "0 8-20 * * *" \
-  --message "Run this command: python3 ~/.openclaw/skills/whatsapp-happybday/scripts/whatsapp_happybday.py. Examine the script's output carefully. If the script sent a congratulatory message to someone, reply with a short summary saying who received it. If the script encountered an error, reply explaining the exact error message. If neither happened (no message sent and no errors), reply ONLY with exactly NO_REPLY."
+  --message "Run this command: python3 ~/.openclaw/skills/whatsapp-happybday/scripts/whatsapp_happybday.py. Examine the script's output carefully. If the script sent a congratulatory message to someone, reply with a short summary saying who received it. If the script encountered an error, reply explaining the exact error message. If neither happened (no message sent and no errors), reply ONLY with exactly HEARTBEAT_OK."
 ```
 
 ## How It Works Under the Hood
