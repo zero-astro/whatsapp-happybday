@@ -1,5 +1,6 @@
 ---
 name: whatsapp-happybday
+version: 1.0.1
 description: Monitor WhatsApp groups to dynamically detect people who should be congratulated. It identifies keywords (e.g., "birthday", "congratulations") and the person's name using a score-based system, then automatically sends a random customizable congratulatory message.
 triggers:
   - whatsapp happybday
