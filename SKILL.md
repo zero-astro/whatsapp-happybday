@@ -1,7 +1,6 @@
 ---
 name: whatsapp-happybday
 description: Monitor WhatsApp groups to dynamically detect people who should be congratulated. It identifies keywords (e.g., "birthday", "congratulations") and the person's name using a score-based system, then automatically sends a random customizable congratulatory message.
-version: 1.0.0
 triggers:
   - whatsapp happybday
   - monitor whatsapp group
@@ -32,6 +31,7 @@ It dynamically checks recent messages across all active groups, uses a score-bas
 - **Dynamic Group Monitoring**: Automatically fetches active groups and recent messages via `wacli`. No need to hardcode group names.
 - **Score-Based Keyword Detection**: Uses a weighted scoring system (e.g., "birthday" = +40 pts, "family" = -50 pts) to accurately detect congratulatory intent.
 - **Name Identification**: Extracts the name of the person being congratulated from the messages using Regex and dictionary filtering.
+- **Enhanced Skip List**: Supports both permanent skips (e.g., your own name) AND date-based skips (skip only on specific birthdays). Format: `"Name|MM-DD,OtherName"` where names with `|MM-DD` are skipped ONLY on that date, and names without the pipe are permanently skipped.
 - **Fully Customizable**: Uses external JSON files (`messages.json` and `scoring_words.json`) so you can adapt it to any language or vibe.
 - **Simulation Mode**: Test the logic safely without actually sending messages.
 
@@ -52,8 +52,11 @@ To make the skill work, you need to configure a few environment variables and (o
 Create a `.env` file in the skill's root directory (`~/.openclaw/skills/whatsapp-happybday/.env`) or export these variables in your environment:
 
 ```bash
-# Comma-separated list of names to ignore (e.g., your own name or close family)
-export BIRTHDAY_SKIP_LIST="John,Jane,Alice" 
+# Skip list with enhanced format:
+# - "Name|MM-DD" = skip this person ONLY on their birthday (date-based)
+# - "Name" (no pipe) = permanently skip this name (e.g., your own name)
+# Examples: "John|01-15,Jane,Alice|12-25"
+export BIRTHDAY_SKIP_LIST="Urtzi|03-16,Iraide,Xune,Eñaut|08-25"
 
 # Minimum messages mentioning the name before triggering
 export BIRTHDAY_MIN_MESSAGES="3"

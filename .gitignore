@@ -1,4 +1,6 @@
+.DS_Store
 .env
+venv/
 data/
 messages.json
 scoring_words.json

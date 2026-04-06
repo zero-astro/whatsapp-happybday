@@ -44,9 +44,34 @@ if sys.executable == '/opt/homebrew/bin/python3':
         print(f"Using Python: {python_path}")
 
 # --- Main Configuration ---
-# These users will never receive automated congratulations
-SKIP_LIST = os.environ.get("BIRTHDAY_SKIP_LIST", "").split(",")
-SKIP_LIST = [name.strip().lower() for name in SKIP_LIST]
+# Skip list format: comma-separated "Name|MM-DD" entries (e.g., "John|01-15,Jane|12-25")
+# If only name is provided (no |), it's treated as a permanent skip
+SKIP_LIST_RAW = os.environ.get("BIRTHDAY_SKIP_LIST", "")
+def parse_skip_list(raw_string):
+    """
+    Parse skip list into two structures:
+    - permanent_skips: set of lowercase names to always skip
+    - birthday_skips: dict mapping (name_lower, mm-dd) -> True for date-based skips
+    """
+    permanent_skips = set()
+    birthday_skips = {}
+    
+    if not raw_string.strip():
+        return permanent_skips, birthday_skips
+    
+    entries = [entry.strip() for entry in raw_string.split(",")]
+    for entry in entries:
+        if "|" in entry:
+            name, date = entry.split("|", 1)
+            name = name.strip().lower()
+            date = date.strip()
+            birthday_skips[(name, date)] = True
+        else:
+            permanent_skips.add(entry.strip().lower())
+    
+    return permanent_skips, birthday_skips
+
+SKIP_LIST_PERMANENT, SKIP_LIST_BIRTHDAY = parse_skip_list(SKIP_LIST_RAW)
 
 # Scoring system and parameters from environment variables
 MIN_MESSAGES = int(os.environ.get("BIRTHDAY_MIN_MESSAGES", "3"))
@@ -158,9 +183,37 @@ def detect_names_with_nlp(text):
     names = [name for name in candidates if name not in blacklist and name.lower() not in blacklist]
     return names
 
+def get_today_month_day():
+    """Get today's month-day as MM-DD"""
+    return datetime.now().strftime("%m-%d")
+
 def is_in_skip_list(name):
-    """Check if name is in the skip list"""
-    return name.lower() in SKIP_LIST
+    """
+    Check if name is in the skip list.
+    Returns:
+        - True if permanently skipped
+        - False if not in skip list at all
+        - 'date_based' if only skipped on specific dates (caller must check date)
+    """
+    name_lower = name.lower()
+    
+    # Check permanent skips first
+    if name_lower in SKIP_LIST_PERMANENT:
+        return True
+    
+    # Check birthday-based skips
+    today_md = get_today_month_day()
+    for (skip_name, skip_date) in SKIP_LIST_BIRTHDAY.keys():
+        if skip_name == name_lower:
+            # Name is in birthday_skips - check if it's today
+            if skip_date == today_md:
+                return True
+            else:
+                # Different date - not skipped today
+                return False
+    
+    # Not in any skip list
+    return False
 
 def select_random_message(name):
     """Select a random congratulatory message by combining parts"""
