@@ -11,6 +11,8 @@ import os
 import json
 from datetime import datetime, timedelta
 import sys
+import urllib.request
+import urllib.error
 
 # Try to import dotenv from various locations
 dotenv_found = False
@@ -231,6 +233,77 @@ def detect_names_with_nlp(text):
     ]
     return names
 
+def validate_names_with_llm(candidates, text):
+    """
+    Use LLM to validate whether candidate words are actual proper names.
+    Returns filtered list of confirmed names.
+    
+    Uses OpenAI-compatible API (e.g., LM Studio on port 1234).
+    Configurable via BIRTHDAY_LLM_BASE_URL and BIRTHDAY_LLM_API_KEY env vars.
+    """
+    if not candidates:
+        return candidates
+    
+    # Check if LLM validation is enabled
+    use_llm = os.environ.get("BIRTHDAY_USE_LLM", "false").lower() == "true"
+    if not use_llm:
+        return candidates
+    
+    base_url = os.environ.get("BIRTHDAY_LLM_BASE_URL", "http://localhost:1234")
+    api_key = os.environ.get("BIRTHDAY_LLM_API_KEY", "")
+    model = os.environ.get("BIRTHDAY_LLM_MODEL", "lmstudio/qwen3.6-35b-a3b")
+    
+    # Build prompt for LLM
+    names_str = ", ".join(candidates)
+    prompt = f"""You are a name validator. Given a list of capitalized words from a text, identify which ones are actual proper names (people's names).
+
+Text: "{text}"
+Candidates: {names_str}
+
+Respond with ONLY a JSON array of confirmed names, e.g.: ["Aitziber", "Mikel"]
+If none are names, respond with an empty array: []
+Do not include any explanation or extra text."""
+    
+    payload = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "max_tokens": 100,
+        "temperature": 0.0
+    }).encode("utf-8")
+    
+    headers = {
+        "Content-Type": "application/json"
+    }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+    
+    try:
+        req = urllib.request.Request(
+            f"{base_url}/v1/chat/completions",
+            data=payload,
+            headers=headers,
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            content = result["choices"][0]["message"]["content"].strip()
+    except Exception as e:
+        print(f"   ⚠️  LLM validation failed: {e}")
+        return candidates
+    
+    # Parse JSON response from LLM
+    try:
+        validated = json.loads(content)
+        if isinstance(validated, list):
+            confirmed = [name for name in validated if isinstance(name, str) and len(name) > 0]
+            print(f"   🤖 LLM validated: {candidates} -> {confirmed}")
+            return confirmed
+    except json.JSONDecodeError:
+        print(f"   ⚠️  LLM response not valid JSON: {content[:100]}")
+    
+    # Fallback: return original candidates if parsing fails
+    return candidates
+
 def get_today_month_day():
     """Get today's month-day as MM-DD"""
     return datetime.now().strftime("%m-%d")
@@ -356,6 +429,11 @@ def process_group(group_jid, state):
         if score <= 0: continue
             
         names = detect_names_with_nlp(message)
+        # LLM validation (optional, only if BIRTHDAY_USE_LLM=true)
+        use_llm = os.environ.get("BIRTHDAY_USE_LLM", "false").lower() == "true"
+        if use_llm:
+            names = validate_names_with_llm(names, message)
+        
         for name in names:
             if is_in_skip_list(name) or name in sent_today: continue
             
