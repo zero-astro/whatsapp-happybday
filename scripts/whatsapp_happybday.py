@@ -11,7 +11,6 @@ import os
 import json
 from datetime import datetime, timedelta
 import sys
-import os
 
 # Try to import dotenv from various locations
 dotenv_found = False
@@ -84,6 +83,13 @@ MESSAGES_FILE = os.path.join(SKILL_DIR, "messages.json")
 SCORING_WORDS_FILE = os.path.join(SKILL_DIR, "scoring_words.json")
 STATE_FILE = os.path.join(DATA_DIR, "name_counter.json")
 # --- End Configuration ---
+
+# Birthday-related keywords to detect congratulatory messages from the human
+CONGRATS_KEYWORDS = [
+    "zorionak", "happy birthday", "happybday", "urte on", "urte asko",
+    "congratulations", "congrats", "best wishes", "feliz cumplea\u00f1os",
+    "onngia", "pasa eguna", "ospatu"
+]
 
 def load_messages():
     """Load congratulatory messages from JSON file"""
@@ -187,6 +193,47 @@ def get_today_month_day():
     """Get today's month-day as MM-DD"""
     return datetime.now().strftime("%m-%d")
 
+def check_user_already_congratulated(name):
+    """
+    Check if the human (FromMe=true) already sent a congratulatory message to this person today.
+    Searches across ALL groups, not just the current one.
+    Returns True if found, False otherwise.
+    """
+    today = get_today_key()
+    all_groups = get_groups()  # Get all active groups
+    name_lower = name.lower()
+    
+    for g_jid in all_groups:
+        cmd = f'wacli messages list --chat "{g_jid}" --after {today} --json'
+        stdout, stderr, rc = run_wacli_command(cmd)
+        
+        if rc != 0 or not stdout.strip():
+            continue
+        
+        try:
+            response = json.loads(stdout)
+            data_block = response.get("data", {})
+            messages_list = data_block.get("messages", [])
+            
+            for msg in messages_list:
+                # Only check messages sent by the human (FromMe=true)
+                if not msg.get("FromMe"):
+                    continue
+                
+                text = msg.get("Text", "").lower()
+                
+                # Check if the message contains the person's name AND a congratulatory keyword
+                has_name = name_lower in text
+                has_congrats = any(kw.lower() in text for kw in CONGRATS_KEYWORDS)
+                
+                if has_name and has_congrats:
+                    print(f"   ⚠️  Human already congratulated {name} today")
+                    return True
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            print(f"   ⚠️  Error checking user messages: {e}")
+    
+    return False
+
 def is_in_skip_list(name):
     """
     Check if name is in the skip list.
@@ -280,6 +327,16 @@ def process_group(group_jid, state):
             
             if count >= MIN_MESSAGES and current_score >= CONFIDENCE_THRESHOLD:
                 print(f"   🎉 Congratulating {name}... ({count} messages, {current_score} points)")
+                
+                # Check if the human already congratulated this person today
+                user_already_sent = check_user_already_congratulated(name)
+                
+                if user_already_sent:
+                    print(f"   ⏭️  Skipping {name} - Human already sent a message")
+                    # Mark as sent to prevent duplicate bot messages
+                    sent_today.append(name)
+                    continue
+                
                 msg = select_random_message(name)
                 
                 if os.environ.get("BIRTHDAY_SIMULATE", "true").lower() == "true":
