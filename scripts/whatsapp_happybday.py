@@ -91,6 +91,36 @@ CONGRATS_KEYWORDS = [
     "onngia", "pasa eguna", "ospatu"
 ]
 
+# Stopwords: capitalized words that are NOT names (reduce false positives)
+# Loaded from BIRTHDAY_STOPWORDS env var (comma-separated, case-insensitive)
+# Default English stopwords if not set
+_DEFAULT_STOPWORDS = [
+    # Common English articles & conjunctions
+    "the", "and", "for", "are", "but", "not", "you", "all",
+    "can", "had", "her", "was", "one", "our", "out", "has",
+    "have", "been", "from", "this", "that", "with", "will",
+    "each", "about", "which", "when", "than", "them", "some",
+    "would", "their", "there", "what", "these", "other",
+    # Birthday-related (not names)
+    "happy", "birthday", "celebrate", "wishes", "today",
+    # Greeting patterns
+    "good", "morning", "afternoon", "evening", "night",
+]
+
+def _load_stopwords():
+    """
+    Load stopwords from BIRTHDAY_STOPWORDS env var.
+    Expected format: comma-separated words, e.g. "the,and,for,happy,birthday"
+    Falls back to defaults if not set or empty.
+    Returns a set of lowercase strings.
+    """
+    raw = os.environ.get("BIRTHDAY_STOPWORDS", "").strip()
+    if not raw:
+        return set(w.lower() for w in _DEFAULT_STOPWORDS)
+    return set(w.strip().lower() for w in raw.split(",") if w.strip())
+
+STOPWORDS = _load_stopwords()
+
 def load_messages():
     """Load congratulatory messages from JSON file"""
     try:
@@ -179,14 +209,26 @@ def save_state(state):
     with open(STATE_FILE, 'w') as f: json.dump(state, f, indent=2)   
 
 def detect_names_with_nlp(text):
+    """
+    Extract candidate names from text using regex.
+    Filters out stopwords and scoring blacklist words.
+    Returns list of capitalized proper noun candidates.
+    """
     scoring_words = load_scoring_words()
     blacklist = set()
     for category in scoring_words.values():
         for word in category["words"]:
             blacklist.add(word.lower())
 
+    # Find all capitalized words with 3+ letters (likely proper nouns)
     candidates = re.findall(r'\b[A-Z][a-z]{2,}\b', text)
-    names = [name for name in candidates if name not in blacklist and name.lower() not in blacklist]
+    
+    # Filter out stopwords and blacklist words
+    names = [
+        name for name in candidates
+        if name.lower() not in STOPWORDS
+        and name.lower() not in blacklist
+    ]
     return names
 
 def get_today_month_day():

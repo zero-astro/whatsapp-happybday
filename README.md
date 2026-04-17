@@ -8,7 +8,7 @@
 
 - **Dynamic Group Monitoring**: Automatically fetches active groups via `wacli`. No hardcoding needed.
 - **Score-Based Detection**: Weighted scoring system (e.g., "birthday" = +40 pts, "family" = -50 pts) for accuracy.
-- **Name Identification**: Extracts names using Regex and dictionary filtering.
+- **Name Identification**: Extracts names using Regex and dictionary filtering. Stopwords are filtered out to reduce false positives (e.g., "Happy" in "Happy Birthday" won't be mistaken for a name).
 - **Fully Customizable**: External JSON files for messages and scoring words.
 - **Simulation Mode**: Test safely without sending real messages.
 
@@ -35,6 +35,12 @@ BIRTHDAY_CONFIDENCE_THRESHOLD=120
 
 # Simulation mode (true=dry-run, false=send real messages)
 BIRTHDAY_SIMULATE=true
+
+# Stopwords: comma-separated capitalized words to exclude from name detection.
+# These are common English words that start with uppercase but aren't names.
+# If not set, a built-in default list is used.
+# Example: BIRTHDAY_STOPWORDS="the,and,for,happy,birthday,morning"
+BIRTHDAY_STOPWORDS=
 ```
 
 ### Custom Dictionaries
