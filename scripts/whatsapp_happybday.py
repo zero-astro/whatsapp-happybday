@@ -35,6 +35,9 @@ if not dotenv_found:
     print("ERROR: python-dotenv not found")
     sys.exit(1)
 
+# Load .env file BEFORE reading environment variables
+load_dotenv()
+
 # Ensure we're using the right Python path
 if sys.executable == '/opt/homebrew/bin/python3':
     # Try to find the correct python-dotenv installation
